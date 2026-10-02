@@ -37,13 +37,23 @@
       <thead>
         <tr>
           <th v-for="column in columns" :key="column">{{ column }}</th>
+          <th>理赔案号</th>
+          <th>保险定损金额（同理赔台账）</th>
           <th>当前状态</th>
           <th>可执行动作</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in rows" :key="String(row.id)">
-          <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+        <tr v-for="row in rows" :key="String(row.id)" :class="{ 'row-paid': String(row.保险赔付标记) === '已赔付' }">
+          <td v-for="column in columns" :key="column">
+            <template v-if="column === '保险赔付标记'">
+              <span v-if="String(row[column]) === '已赔付'" class="tag tag-ok">已赔付</span>
+              <span v-else>—</span>
+            </template>
+            <template v-else>{{ row[column] ?? '—' }}</template>
+          </td>
+          <td>{{ insuranceOf(row)?.理赔案号 ?? '—' }}</td>
+          <td>{{ insuranceOf(row)?.定损金额 ?? '—' }}</td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
@@ -58,13 +68,13 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无避险搬迁数据，可先登记搬迁安置单</td>
+          <td :colspan="columns.length + 4" class="empty-state">暂无避险搬迁数据，可先登记搬迁安置单</td>
         </tr>
       </tbody>
     </table>
 
     <footer class="page-foot">
-      <span>共 {{ total }} 条避险搬迁记录</span>
+      <span>共 {{ total }} 条避险搬迁记录 · 已赔付标记由保险理赔「复核办结」自动落，定损金额与理赔台账同源</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
@@ -77,12 +87,13 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  relocateInsuranceView,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('relocate')
-const columns = ["搬迁编号", "所属隐患点", "涉及户数", "安置方式", "安置地点", "签订日期", "完成日期", "搬迁状态"]
+const columns = ["搬迁编号", "所属隐患点", "涉及户数", "安置方式", "安置地点", "签订日期", "完成日期", "搬迁状态", "保险赔付标记"]
 const actions = ["确认签订", "开始搬迁", "确认完成"]
 const statuses = ["待签订", "已签订", "搬迁中", "已完成"]
 const stats = [{"label": "待签订户数", "value": 0}, {"label": "搬迁中户数", "value": 0}, {"label": "已安置户数", "value": 0}]
@@ -92,6 +103,12 @@ const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+// 保险口径只从理赔台账读：案号、定损金额两处共用同一份，不另抄一遍。
+const insuranceView = ref<Record<string, { 定损金额: string; 赔付金额: string; 理赔案号: string }>>({})
+
+function insuranceOf(row: EntryRow) {
+  return insuranceView.value[String(row.搬迁编号 ?? '').trim()]
+}
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,
@@ -128,6 +145,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    insuranceView.value = relocateInsuranceView()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '避险搬迁列表读取失败'
   }

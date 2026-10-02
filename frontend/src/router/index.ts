@@ -8,6 +8,7 @@ const Rain = () => import('@/views/rain/index.vue')
 const Warning = () => import('@/views/warning/index.vue')
 const Patrol = () => import('@/views/patrol/index.vue')
 const Relocate = () => import('@/views/relocate/index.vue')
+const Insurance = () => import('@/views/insurance/index.vue')
 const Refuge = () => import('@/views/refuge/index.vue')
 const Drill = () => import('@/views/drill/index.vue')
 const Project = () => import('@/views/project/index.vue')
@@ -31,6 +32,7 @@ const router = createRouter({
     { path: '/warning', name: 'warning', component: Warning },
     { path: '/patrol', name: 'patrol', component: Patrol },
     { path: '/relocate', name: 'relocate', component: Relocate },
+    { path: '/insurance', name: 'insurance', component: Insurance },
     { path: '/refuge', name: 'refuge', component: Refuge },
     { path: '/drill', name: 'drill', component: Drill },
     { path: '/project', name: 'project', component: Project },
