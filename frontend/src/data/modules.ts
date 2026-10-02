@@ -1,4 +1,5 @@
 import type { ModuleMeta } from './types'
+import { CLAIM_FIELDS } from './insurance-policy'
 
 // 模块元数据由仓库生成时写入：字段、状态、动作、流转目标都在这里，页面不再各自写一遍。
 export const MODULES: ModuleMeta[] = [
@@ -78,6 +79,18 @@ export const MODULES: ModuleMeta[] = [
     actions: ["确认签订", "开始搬迁", "确认完成"],
     actionTargets: {"确认签订": "已签订", "开始搬迁": "搬迁中", "确认完成": "已完成"},
     metrics: ["待签订户数", "搬迁中户数", "已安置户数"],
+  },
+  {
+    key: "insurance",
+    name: "灾损保险理赔",
+    entity: "理赔案",
+    desc: "汛期受灾后的保险理赔台账：按投保标的分类管理理赔案号、定损金额与赔付进度，状态只能沿报出→定损→核赔→到账顺次推进，逐次留痕，超期未推进的排最前。",
+    fields: CLAIM_FIELDS,
+    statuses: ["报出", "定损", "核赔", "到账"],
+    actions: ["提交定损", "复核办结", "确认到账", "修正定损金额", "退回核对"],
+    // 前三步是正向流转；修正/退回是理赔专用动作，不在通用 runAction 里走。
+    actionTargets: {"提交定损": "定损", "复核办结": "核赔", "确认到账": "到账"},
+    metrics: ["在办理赔案", "超期未推进", "已到账金额"],
   },
   {
     key: "refuge",

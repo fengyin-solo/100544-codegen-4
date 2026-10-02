@@ -49,6 +49,7 @@ npm run build
 | 预警发布 | `warning` | 预警信息 | 预警编号、发布对象、预警级别 |
 | 群测群防巡查 | `patrol` | 巡查记录 | 巡查编号、所属隐患点、巡查人 |
 | 避险搬迁 | `relocate` | 搬迁安置单 | 搬迁编号、所属隐患点、涉及户数 |
+| 灾损保险理赔 | `insurance` | 理赔案 | 理赔案号、投保标的、定损金额、赔付进度 |
 | 避险场所 | `refuge` | 避险场所 | 场所编号、场所名称、可容纳人数 |
 | 应急演练 | `drill` | 应急演练 | 演练编号、演练主题、参演队伍 |
 | 治理工程 | `project` | 治理工程 | 工程编号、所属隐患点、工程类型 |
@@ -68,4 +69,7 @@ npm run build
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
+- 灾损保险理赔有独立业务口径：状态只能沿报出→定损→核赔→到账顺次推进，逐次在 `traces` 留痕，
+  口径（定损金额、赔付进度、极值退回、超期天数）集中在 `frontend/src/data/insurance-policy.ts`；
+  避险搬迁清单通过 `relocationClaims()` 读同一份定损金额与赔付标记，不另存一份。
 - 想回到初始数据：清掉浏览器里 `geohazard-patrol:entries` 这一项，或调用 `resetModule(模块)`。

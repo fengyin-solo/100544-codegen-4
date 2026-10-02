@@ -37,6 +37,8 @@
       <thead>
         <tr>
           <th v-for="column in columns" :key="column">{{ column }}</th>
+          <th>关联理赔定损金额</th>
+          <th>保险赔付</th>
           <th>当前状态</th>
           <th>可执行动作</th>
         </tr>
@@ -44,6 +46,12 @@
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td>{{ claimInfo(row).定损金额 === null ? '—' : formatAmount(claimInfo(row).定损金额 as number) }}</td>
+          <td>
+            <span v-if="claimInfo(row).已赔付" class="paid-tag">已赔付</span>
+            <span v-else-if="claimInfo(row).理赔案号" class="pending-tag">理赔中 {{ claimInfo(row).赔付进度 }}%</span>
+            <span v-else>—</span>
+          </td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
@@ -58,13 +66,13 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无避险搬迁数据，可先登记搬迁安置单</td>
+          <td :colspan="columns.length + 4" class="empty-state">暂无避险搬迁数据，可先登记搬迁安置单</td>
         </tr>
       </tbody>
     </table>
 
     <footer class="page-foot">
-      <span>共 {{ total }} 条避险搬迁记录</span>
+      <span>共 {{ total }} 条避险搬迁记录；关联理赔定损金额与赔付进度读自灾损保险理赔台账同一份口径，不在此重复维护。</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
@@ -77,8 +85,10 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  relocationClaims,
   runAction as applyAction,
 } from '@/api/local-service'
+import { formatAmount } from '@/data/insurance-policy'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('relocate')
@@ -92,6 +102,13 @@ const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+// 理赔信息（定损金额 / 赔付进度 / 已赔付）统一从理赔台账口径读取，搬迁清单不复制一份。
+let claimsMap = relocationClaims()
+
+const noClaim = { 理赔案号: '', 定损金额: null as number | null, 赔付进度: 0, 已赔付: false }
+function claimInfo(row: EntryRow) {
+  return claimsMap.get(String(row.搬迁编号)) ?? noClaim
+}
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,
@@ -125,6 +142,7 @@ function runAction(action: string, row: EntryRow) {
 function reload() {
   errorMessage.value = ''
   try {
+    claimsMap = relocationClaims()
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
@@ -135,3 +153,24 @@ function reload() {
 
 onMounted(reload)
 </script>
+
+<style scoped>
+.paid-tag {
+  display: inline-block;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.pending-tag {
+  display: inline-block;
+  background: #eef2f7;
+  color: #475569;
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+</style>
